@@ -1,0 +1,17 @@
+global:
+  scrape_interval:     2s
+  evaluation_interval: 2s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: prometheus
+
+  - job_name: all-chars
+    metrics_path: '/all-chars/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['172.17.0.1:8090'] #colocar endereço ip local
+        labels:
+          instance: all-chars

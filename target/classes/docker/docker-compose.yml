@@ -1,0 +1,89 @@
+version: '3'
+services:
+  jaeger:
+    image: 'jaegertracing/all-in-one:latest'
+    container_name: jaeger-all-chars
+    networks:
+      - net
+    ports:
+      - '5775:5775/udp'
+      - '6831:6831/udp'
+      - '6832:6832/udp'
+      - '5778:5778'
+      - '14268:14268'
+      - '14250:14250'
+      - '16686:16686'
+    expose:
+      - '5775'
+      - '6831'
+      - '6832'
+      - '5778'
+      - '14268'
+      - '14250'
+      - '16686'
+  rabbitmq:
+    image: 'rabbitmq:3.8.2-management'
+    container_name: rabbitmq-all-chars
+    networks:
+      - net
+    ports:
+      - '15672:15672'
+      - '5672:5672'
+    expose:
+      - '15672'
+      - '5672'
+  db-mysql-qr-payment:
+    hostname: mysql_all-chars
+    container_name: mysql_all-chars
+    networks:
+      - net
+    logging:
+      driver: json-file
+      options:
+        max-size: 500m
+    image: 'mysql:5.7'
+    environment:
+      MYSQL_DATABASE: api_all-chars
+      MYSQL_USER: api_all-chars
+      MYSQL_PASSWORD: api_all-chars
+      MYSQL_ROOT_PASSWORD: api_all-chars
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+  zookeeper:
+    image: 'confluentinc/cp-zookeeper:latest'
+    container_name: zookeeper-all-chars
+    networks:
+      - net
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  kafka:
+    image: 'confluentinc/cp-kafka:latest'
+    container_name: kafka-all-chars
+    networks:
+      - net
+    depends_on:
+      - zookeeper
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  mongo:
+      image: mongo
+      container_name: all-char-mongo
+      environment:
+        - MONGO_INITDB_DATABASE= all-char
+      ports:
+        - 27017:27017
+      networks:
+        - net
+networks:
+  net:
+    driver: bridge

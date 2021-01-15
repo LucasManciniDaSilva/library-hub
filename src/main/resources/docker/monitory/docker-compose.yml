@@ -1,0 +1,46 @@
+version: '3'
+volumes:
+  datasource: {}
+  prometheus_data: {}
+networks:
+  back-tier:
+    driver: bridge
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    expose:
+      - 9090
+    ports:
+      - "9090:9090"
+#    networks:
+#        - back-tier
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=true
+#      - GF_SERVER_DOMAIN=myrul.com
+#      - GF_SMTP_ENABLED=true
+#      - GF_SMTP_HOST=smtp.gmail.com:587
+#      - GF_SMTP_USER=myadrress@gmail.com
+#      - GF_SMTP_PASSWORD=admin
+#      - GF_SMTP_FROM_ADDRESS=myaddress@gmail.com
+    depends_on:
+      - prometheus
+    ports:
+      - "3333:3000"
+    volumes:
+    - ./datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+    - ./dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+    - ./spring-boot.json:/etc/grafana/provisioning/dashboards/spring-boot.json
+    - ./microservice-metrics.json:/etc/grafana/provisioning/dashboards/microservice-metrics.json

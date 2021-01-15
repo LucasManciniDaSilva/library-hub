@@ -1,0 +1,140 @@
+server:
+  port: ${SERVER_PORT:8090}
+  servlet:
+    context-path: /all-chars/v1
+  undertow:
+    threads:
+      io: ${UNDERTOW_IO-THREADS:10}
+      worker: ${UNDERTOW_WORKER-THREADS:100}
+  shutdown: graceful
+logging:
+  level:
+    root: ${ROOT_LOG_LEVEL:info}
+    org:
+      apache:
+        http:
+          wire: ${HTTP_LOG_LEVEL:info}
+  pattern:
+    console: "[%thread][%highlight(%-5level)][%green(%d{yyyy-MM-dd HH:mm:ss.SSS})][%yellow(%X{requestId})][%cyan(%logger{40})] - %msg%n"
+spring:
+  mongodb:
+    database: all-chars
+    port: 27017
+    host: localhost
+  application:
+    name: ${APPLICATION_NAME:api-all-chars}
+  jpa:
+    database: mysql
+    show-sql: ${HIBERNATE_SHOW_SQL:true}
+    properties:
+      hibernate:
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
+        globally_quoted_identifiers: true
+        temp:
+          use_jdbc_metadata_defaults: false
+    open-in-view: false
+  datasource:
+    platform: ${DATABASE:mysql}
+    driverClassName: ${DB_DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
+    url: ${DATASOURCE_URL:jdbc:mysql://localhost:3306/api_all-chars?useSSL=false}
+    username: ${DB_USERNAME:api_all-chars}
+    password: ${DB_PASSWORD:api_all-chars}
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      maximum-pool-size: ${HIKARI_MAXIMUM_POOL_SIZE:40}
+      minimum-idle: ${HIKARI_MINIMUM_IDLE:5}
+      connection-timeout: ${HIKARI_TIMEOUT:5000}
+  main:
+    allow-bean-definition-overriding: true
+    cloud-platform: ${CLOUD_PLATFORM:kubernetes}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    template:
+      exchange: all-chars
+    listener:
+      simple:
+        retry:
+          enabled: ${RABBITMQ_RETRY_ENABLED:true}
+          initial-interval: ${RABBITMQ_RETRY_INTERVAL:1000}
+          max-attempts: ${RABBITMQ_RETRY_ATTEMPTS:3}
+        concurrency: ${RABBITMQ_CONCURRENCY:10}
+        max-concurrency: ${RABBITMQ_MAX_CONCURRENCY:${server.undertow.threads.worker}}
+  profiles:
+    active: ${SPRING_ACTIVE_PROFILE:dev}
+caffeine:
+  maximumSize:
+    default: ${CAFFEINE_DEFAULT_MAX_SIZE:100}
+  ttl:
+    default: ${CAFFEINE_DEFAULT_TTL:60} # in minutes
+
+interceptor:
+  mdc-interceptor:
+    enabled: ${MDC_INTERCEPTOR:true} # Mapped Diagnostic Context (MDC)
+
+rabbit:
+  exchanges:
+    cache-evict: ${CACHE_EVICT_EXCHANGE:api-all-chars-cache-evict.fanout}
+  queues:
+    cache-evict: ${CACHE_EVICT_QUEUE:api-all-chars-cache-evict-queue}-${random.uuid}
+    callback:
+      partner: ${PARTNER_CALLBACK_QUEUE:api-all-chars-partner-callback-queue}
+    transaction: ${TRANSACTIONS_QUEUE:api-all-chars-transactions-queue}
+
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      env: ${spring.profiles.active}
+      instanceId: ${random.uuid}
+  endpoints:
+    web:
+      exposure:
+        include: "info,health,prometheus,metrics"
+  health:
+    rabbit:
+      enabled: ${RABBITMQ_HEALTHCHECK_ENABLED:true}
+
+opentracing:
+  jaeger:
+    enabled: ${JAEGER_ENABLED:true}
+    service-name: ${spring.application.name}
+    log-spans: ${OPENTRACING_LOG_SPANS:false}
+    http-sender:
+      url: ${JAEGER_ENDPOINT:http://localhost:14268/api/traces}
+    probabilistic-sampler:
+      sampling-rate: ${JAEGER_SAMPLER:1} # 1 = 100%, 0.5 = 50%, etc.
+  spring:
+    cloud:
+      jdbc:
+        enabled: ${JAEGER_JDBC_ENABLED:false}
+      redis:
+        enabled: ${JAEGER_REDIS_ENABLED:false}
+    web:
+      skip-pattern: ${JAEGER_SKIP_PATTERN:/actuator.*}
+
+system:
+  time-zone: ${SYSTEM_TIME_ZONE:GMT-3}
+
+kafka:
+  topic:
+    transaction-analytics: ${KAFKA_TOPIC_TRANSACTION_ANALYTICS:api-all-chars}
+  producer:
+    bootstrap-servers: ${KAFKA_SERVER:localhost:9092}
+    retries: ${KAFKA_RETRIES:3}
+    acks: ${KAFKA_ACKS:1}
+  jaas:
+    enabled: ${KAFKA_JAAS_ENABLED:false}
+    username: ${KAFKA_USERNAME:api-all-chars}
+    password: ${KAFKA_PASSWORD:123456}
+
+retry:
+  default:
+    backoff-delay: ${DEFAULT_BACKOFF_DELAY:100}
+    max-attempts: ${DEFAULT_MAX_ATTEMPTS:3}
+  acquirer:
+    update-public-key:
+      backoff-delay: ${ACQUIRER_UPDATE_PK_BACKOFF_DELAY:15000}
+      max-attempts: ${ACQUIRER_UPDATE_PK_MAX_ATTEMPTS:3}
